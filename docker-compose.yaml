@@ -24,7 +24,9 @@ services:
     volumes:
       - ./container2-running-py:/app
     environment:
-      - STREAMLIT_ENV=local
+      - CHROMADB_HOST=chromadb
+    env_file:
+      - ./container2-running-py/.env
     restart: unless-stopped
 
   chromadb:

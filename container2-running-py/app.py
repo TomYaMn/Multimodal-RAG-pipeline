@@ -11,6 +11,7 @@ from langchain.storage._lc_store import create_kv_docstore
 from langchain.retrievers.multi_vector import MultiVectorRetriever
 import base64
 import chromadb
+import os
 
 # Helper functions
 def is_base64(s):
@@ -48,7 +49,8 @@ def build_prompt(kwargs):
 
 # Initialize OpenAI Embeddings
 embedding_function = OpenAIEmbeddings()
-chroma_client = chromadb.HttpClient(host="localhost", port=8000)
+host = os.getenv("CHROMADB_HOST", "chromadb")
+chroma_client = chromadb.HttpClient(host=host, port=8000)
 vectorstore = Chroma(client=chroma_client, collection_name="multi_modal_rag", embedding_function=embedding_function)
 store_path = "./store_document"
 fs = LocalFileStore(store_path)
@@ -72,5 +74,13 @@ if st.button("Submit"):
         st.subheader("Response:")
         st.write(response['response'])
         st.subheader("Retrieved Images:")
-        for image in response['context']['images']:
-            st.image(base64.b64decode(image), use_column_width=True)
+        for i, image in enumerate(response['context']['images']):
+            # st.text(f"Base64 string for image {i+1}:\n{image[:100]}... [truncated]")
+            try:
+                # img = base64.b64decode(image)
+                # st.image(img, caption=f"Image {i+1}", use_container_width=True)
+                st.markdown(
+                f'<img src="data:image/jpeg;base64,{image}" style="max-width:100%;">',
+                unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"Failed to display image {i+1}: {e}")
