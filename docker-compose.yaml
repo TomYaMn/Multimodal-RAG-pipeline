@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  jupyter:
+    image: jupyter/scipy-notebook:latest
+    container_name: container1-training-ipynb
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./container1-training-ipynb:/home/jovyan/work
+    environment:
+      - JUPYTER_TOKEN=your_token_here
+    depends_on:
+      - chromadb
+    restart: unless-stopped
+
+  streamlit:
+    container_name: container2-running-py
+    build:
+      context: ./container2-running-py
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./container2-running-py:/app
+    environment:
+      - STREAMLIT_ENV=local
+    restart: unless-stopped
+
+  chromadb:
+    container_name: container3-chromadb
+    image: ghcr.io/chroma-core/chroma:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - IS_PERSISTENT=TRUE
+    volumes:
+      - ./container3-chromadb/chroma-data:/chroma/chroma/  # Bind mount for persistent storage
+    restart: always
+
+volumes:
+  chroma-data:
+    driver: local
