@@ -2,14 +2,17 @@ version: "3.8"
 
 services:
   jupyter:
-    image: jupyter/scipy-notebook:latest
     container_name: container1-training-ipynb
+    build:
+      context: ./container1-training-ipynb
+      dockerfile: Dockerfile
+    image: multimodal-rag-pipeline-jupyter
     ports:
       - "8888:8888"
     volumes:
       - ./container1-training-ipynb:/home/jovyan/work
     environment:
-      - JUPYTER_TOKEN=your_token_here
+      - JUPYTER_ENABLE_LAB=yes
     depends_on:
       - chromadb
     restart: unless-stopped
@@ -19,6 +22,7 @@ services:
     build:
       context: ./container2-running-py
       dockerfile: Dockerfile
+    image: multimodal-rag-pipeline-streamlit
     ports:
       - "8501:8501"
     volumes:

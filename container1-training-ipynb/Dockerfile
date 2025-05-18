@@ -1,16 +1,10 @@
-# Use official Python 3.11 base image
 FROM python:3.11.9-slim
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-# Set working directory
-WORKDIR /app
-
-# Install system dependencies (for packages like opencv, pdf2image, pillow etc.)
-RUN apt-get update && apt-get install -y \
-    gcc \
+# Install system dependencies including sudo
+USER root
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+    build-essential \
     git \
     libgl1 \
     poppler-utils \
@@ -19,15 +13,32 @@ RUN apt-get update && apt-get install -y \
     libsm6 \
     libxext6 \
     libxrender-dev \
-    && rm -rf /var/lib/apt/lists/*
+    tesseract-ocr \
+    sudo \
+ && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
+# Copy & filter requirements
+COPY requirements.txt /tmp/requirements.txt
+RUN grep -vE "^(pywin32|pywinpty)" /tmp/requirements.txt > /tmp/filtered-reqs.txt \
+ && pip install --upgrade pip \
+ && pip install jupyterlab notebook scipy numpy pandas \
+ && pip install -r /tmp/filtered-reqs.txt \
+ && rm /tmp/requirements.txt /tmp/filtered-reqs.txt
 
-# Copy your project files
-COPY . .
+# Create jovyan user with bash shell
+RUN useradd -m -s /bin/bash jovyan
 
-# Run your main app (adjust this as needed)
-CMD ["python", "app.py"]
+# Set password for jovyan user
+RUN echo "jovyan:password" | chpasswd
+
+# Give jovyan sudo permissions without password prompt
+RUN echo "jovyan ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/jovyan
+
+# Switch to jovyan user
+USER jovyan
+
+WORKDIR /home/jovyan/work
+EXPOSE 8888
+
+# Launch JupyterLab without token (local dev only)
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--NotebookApp.token=''"]
